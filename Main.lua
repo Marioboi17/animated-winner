@@ -1,7 +1,7 @@
 -- Main.lua — FischAdmin by You
 -- Paste this in your GitHub repo as Main.lua
 
-print("🎮 FischAdmin loaded!")
+print("🎮 Admin loaded!")
 
 -- Configuration: Admin usernames (lowercase)
 local Admins = { "guest_2323143" }
