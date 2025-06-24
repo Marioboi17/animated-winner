@@ -1,126 +1,53 @@
--- Main.lua — FischAdmin by You
--- Paste this in your GitHub repo as Main.lua
+local player = game.Players.LocalPlayer
+local prefix = "!"
 
-print("🎮 Admin loaded!")
+local function onCommand(cmd)
+	cmd = cmd:lower()
 
--- Configuration: Admin usernames (lowercase)
-local Admins = { "guest_2323143" }
+	local character = player.Character
+	local root = character and character:FindFirstChild("HumanoidRootPart")
+	local humanoid = character and character:FindFirstChild("Humanoid")
 
-local Players = game:GetService("Players")
-local ReplicatedStorage = game:GetService("ReplicatedStorage")
+	if cmd == "fly" and root then
+		if not root:FindFirstChild("BodyGyro") then
+			local gyro = Instance.new("BodyGyro")
+			gyro.P = 9e4
+			gyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
+			gyro.CFrame = root.CFrame
+			gyro.Name = "BodyGyro"
+			gyro.Parent = root
 
--- Create RemoteEvent
-local Remote = ReplicatedStorage:FindFirstChild("AdminCommand")
-if not Remote then
-    Remote = Instance.new("RemoteEvent")
-    Remote.Name = "AdminCommand"
-    Remote.Parent = ReplicatedStorage
+			local vel = Instance.new("BodyVelocity")
+			vel.Velocity = Vector3.new(0, 50, 0)
+			vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
+			vel.Name = "BodyVelocity"
+			vel.Parent = root
+		end
+
+	elseif cmd == "unfly" and root then
+		local gyro = root:FindFirstChild("BodyGyro")
+		local vel = root:FindFirstChild("BodyVelocity")
+		if gyro then gyro:Destroy() end
+		if vel then vel:Destroy() end
+
+	elseif cmd == "ff" and character then
+		if not character:FindFirstChildOfClass("ForceField") then
+			Instance.new("ForceField", character)
+		end
+
+	elseif cmd == "unff" and character then
+		local ff = character:FindFirstChildOfClass("ForceField")
+		if ff then ff:Destroy() end
+
+	elseif cmd == "kill" and humanoid then
+		humanoid.Health = 0
+	end
 end
 
--- Command definitions
-local Commands = {}
-
-Commands["fly"] = function(target)
-    local char = target.Character
-    if char and not char:FindFirstChild("BodyGyro") then
-        local root = char:FindFirstChild("HumanoidRootPart")
-        if root then
-            local gyro = Instance.new("BodyGyro", root)
-            gyro.P = 9e4
-            gyro.MaxTorque = Vector3.new(9e9, 9e9, 9e9)
-            gyro.CFrame = root.CFrame
-
-            local vel = Instance.new("BodyVelocity", root)
-            vel.Velocity = Vector3.new(0, 50, 0)
-            vel.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        end
-    end
-end
-
-Commands["unfly"] = function(target)
-    local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    if root then
-        if root:FindFirstChild("BodyGyro") then root.BodyGyro:Destroy() end
-        if root:FindFirstChild("BodyVelocity") then root.BodyVelocity:Destroy() end
-    end
-end
-
-Commands["forcefield"] = function(target)
-    local char = target.Character
-    if char and not char:FindFirstChildOfClass("ForceField") then
-        Instance.new("ForceField", char)
-    end
-end
-
-Commands["unforcefield"] = function(target)
-    local char = target.Character
-    local ff = char and char:FindFirstChildOfClass("ForceField")
-    if ff then ff:Destroy() end
-end
-
-Commands["kill"] = function(target)
-    local hum = target.Character and target.Character:FindFirstChild("Humanoid")
-    if hum then hum.Health = 0 end
-end
-
-Commands["spamkill"] = function(target)
-    for i = 1, 10 do
-        task.delay(i * 0.5, function()
-            if target and target.Character then
-                local hum = target.Character:FindFirstChild("Humanoid")
-                if hum then hum.Health = 0 end
-            end
-        end)
-    end
-end
-
-Commands["bring"] = function(target, caller)
-    if target.Character and caller.Character then
-        local tRoot = target.Character:FindFirstChild("HumanoidRootPart")
-        local cRoot = caller.Character:FindFirstChild("HumanoidRootPart")
-        if tRoot and cRoot then
-            tRoot.CFrame = cRoot.CFrame + Vector3.new(2, 0, 0)
-        end
-    end
-end
-
-Commands["freeze"] = function(target)
-    local root = target.Character and target.Character:FindFirstChild("HumanoidRootPart")
-    if root and not root:FindFirstChild("Frozen") then
-        local bv = Instance.new("BodyVelocity")
-        bv.Name = "Frozen"
-        bv.Velocity = Vector3.new(0, 0, 0)
-        bv.MaxForce = Vector3.new(9e9, 9e9, 9e9)
-        bv.Parent = root
-    end
-end
-
-Commands["invisible"] = function(target)
-    if target.Character then
-        for _, obj in ipairs(target.Character:GetDescendants()) do
-            if obj:IsA("BasePart") then
-                obj.Transparency = 1
-            elseif obj:IsA("Decal") then
-                obj.Transparency = 1
-            end
-        end
-    end
-end
-
--- Handle remote commands
-Remote.OnServerEvent:Connect(function(caller, input)
-    if not table.find(Admins, caller.Name:lower()) then return end
-
-    local parts = string.split(input, " ")
-    local cmd = parts[1]:lower()
-    local targetName = parts[2]
-    local target = targetName and Players:FindFirstChild(targetName)
-
-    if Commands[cmd] then
-        if target then
-            Commands[cmd](target, caller)
-        else
-            Commands[cmd](caller)
-        end
-    end
+-- Hook into chat
+player.Chatted:Connect(function(msg)
+	if msg:sub(1, #prefix) == prefix then
+		local command = msg:sub(#prefix + 1)
+		onCommand(command)
+	end
 end)
